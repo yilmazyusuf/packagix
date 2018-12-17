@@ -1,0 +1,39 @@
+#!/usr/bin/env php
+<?php
+//ln -s ../packagix/packagix packagix
+call_user_func(function () {
+    $argv = isset($_SERVER['argv']) ? $_SERVER['argv'] : array();
+
+    $package = null;
+    $install = false;
+    foreach ($argv as $i => $arg) {
+
+        if ($install === true) {
+            $package = $arg;
+            $install = false;
+        }
+        if ($arg == 'install') {
+            $install = true;
+
+        }
+    }
+
+    if (!is_null($package)) {
+        $cwd = getcwd();
+        $cwd = str_replace('\\', '/', $cwd);
+        $chunks = explode('/', $cwd);
+
+
+        while (!empty($chunks)) {
+            $path = implode('/', $chunks);
+            if (is_file($path . '/composer.json')) {
+                if ($cfg = json_decode(file_get_contents($path . '/composer.json'), true)) {
+                    var_dump($cfg);
+                }
+            }
+
+            array_pop($chunks);
+        }
+
+    }
+});
