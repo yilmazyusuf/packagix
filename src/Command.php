@@ -1,80 +1,93 @@
 <?php
+
 namespace Packagix;
 class Command
 {
-    /**
-     * @throws \RuntimeException
-     * @throws \PHPUnit\Framework\Exception
-     * @throws \InvalidArgumentException
-     */
-    public static function main(bool $exit = true): int
+    //./vendor/bin/packagix init
+    protected $arguments = [
+        'init'
+    ];
+
+    protected $composerJson = null;
+
+
+    public static function main()
     {
+
         $command = new static;
 
-        return $command->run($_SERVER['argv'], $exit);
+        return $command->run();
     }
 
-    /**
-     * @throws \RuntimeException
-     * @throws \ReflectionException
-     * @throws \InvalidArgumentException
-     * @throws Exception
-     */
-    public function run(array $argv, bool $exit = true): int
+    protected function run()
     {
-        /*
-        $this->handleArguments($argv);
+        return $this->getArguments();
+    }
 
-        $runner = $this->createRunner();
+    protected function checkArgs(string $arg): bool
+    {
+        return in_array($arg, $this->arguments);
+    }
 
-        if ($this->arguments['test'] instanceof Test) {
-            $suite = $this->arguments['test'];
-        } else {
-            $suite = $runner->getTest(
-                $this->arguments['test'],
-                $this->arguments['testFile'],
-                $this->arguments['testSuffixes']
+    protected function getArguments()
+    {
+
+        foreach ($_SERVER['argv'] as $argv) {
+            if ($this->checkArgs($argv) === true) {
+                $this->handleArgument($argv);
+            }
+        }
+    }
+
+    protected function handleArgument(string $argv)
+    {
+
+        switch ($argv) {
+            case 'init':
+                $this->readComposerJson();
+                $this->cmdInit();
+                break;
+        }
+    }
+
+    protected function readComposerJson()
+    {
+
+        if (!is_null($this->composerJson)) {
+            return $this->composerJson;
+        }
+
+        $composerContent = file_get_contents(COMPOSER_PATH);
+
+        if ($composerContent === false || is_null($composerContent)) {
+            fwrite(
+                STDERR,
+                'unable to read composer.json' . PHP_EOL
             );
+            die(1);
         }
 
-        if ($this->arguments['listGroups']) {
-            return $this->handleListGroups($suite, $exit);
+        $this->composerJson = json_decode($composerContent, true);
+        return $composerContent;
+
+    }
+
+    protected function cmdInit()
+    {
+        if (!isset($this->composerJson['scripts'])) {
+            $this->composerJson['scripts'] = [];
         }
 
-        if ($this->arguments['listSuites']) {
-            return $this->handleListSuites($exit);
+        if(!isset($this->composerJson['scripts']['packagix'])){
+            $this->composerJson['scripts']['packagix'] = 'packagix';
+            $this->rewriteComposerJson();
         }
+    }
 
-        if ($this->arguments['listTests']) {
-            return $this->handleListTests($suite, $exit);
-        }
+    protected function rewriteComposerJson(){
 
-        if ($this->arguments['listTestsXml']) {
-            return $this->handleListTestsXml($suite, $this->arguments['listTestsXml'], $exit);
-        }
-
-        unset($this->arguments['test'], $this->arguments['testFile']);
-
-        try {
-            $result = $runner->doRun($suite, $this->arguments, $exit);
-        } catch (Exception $e) {
-            print $e->getMessage() . \PHP_EOL;
-        }
-
-        $return = TestRunner::FAILURE_EXIT;
-
-        if (isset($result) && $result->wasSuccessful()) {
-            $return = TestRunner::SUCCESS_EXIT;
-        } elseif (!isset($result) || $result->errorCount() > 0) {
-            $return = TestRunner::EXCEPTION_EXIT;
-        }
-
-        if ($exit) {
-            exit($return);
-        }
-
-        return $return;
-        */
+        $jsonify = json_encode($this->composerJson,JSON_UNESCAPED_SLASHES|JSON_PRETTY_PRINT);
+        $update = file_put_contents(COMPOSER_PATH,$jsonify);
     }
 
 }

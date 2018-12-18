@@ -1,39 +1,61 @@
 #!/usr/bin/env php
 <?php
-//ln -s ../packagix/packagix packagix
 call_user_func(function () {
-    $argv = isset($_SERVER['argv']) ? $_SERVER['argv'] : array();
 
-    $package = null;
-    $install = false;
-    foreach ($argv as $i => $arg) {
 
-        if ($install === true) {
-            $package = $arg;
-            $install = false;
+    $cwd = getcwd();
+    $cwd = str_replace('\\', '/', $cwd);
+    $chunks = explode('/', $cwd);
+
+    while (!empty($chunks)) {
+        $path = implode('/', $chunks);
+        if (is_file($path . '/composer.json')) {
+            define('COMPOSER_PATH', $path . '/composer.json');
         }
-        if ($arg == 'install') {
-            $install = true;
 
-        }
+        array_pop($chunks);
     }
 
-    if (!is_null($package)) {
-        $cwd = getcwd();
-        $cwd = str_replace('\\', '/', $cwd);
-        $chunks = explode('/', $cwd);
+    if (!defined('COMPOSER_PATH')) {
+        fwrite(
+            STDERR,
+            'composer.json not found:' . PHP_EOL . PHP_EOL .
+            '    composer install' . PHP_EOL . PHP_EOL .
+            'You can learn about Composer on https://getcomposer.org/.' . PHP_EOL
+        );
 
-
-        while (!empty($chunks)) {
-            $path = implode('/', $chunks);
-            if (is_file($path . '/composer.json')) {
-                if ($cfg = json_decode(file_get_contents($path . '/composer.json'), true)) {
-                    var_dump($cfg);
-                }
-            }
-
-            array_pop($chunks);
-        }
-
+        die(1);
     }
+
+
+    foreach (array(__DIR__ . '/../../autoload.php', __DIR__ . '/../vendor/autoload.php', __DIR__ . '/vendor/autoload.php') as $file) {
+        if (file_exists($file)) {
+            define('PACKAGIX_COMPOSER_INSTALL', $file);
+
+            break;
+        }
+    }
+    unset($file);
+
+    if (!defined('PACKAGIX_COMPOSER_INSTALL')) {
+        fwrite(
+            STDERR,
+            'You need to set up the project dependencies using Composer:' . PHP_EOL . PHP_EOL .
+            '    composer install' . PHP_EOL . PHP_EOL .
+            'You can learn  about Composer on https://getcomposer.org/.' . PHP_EOL
+        );
+
+        die(2);
+    }
+
+
+
+
 });
+
+
+
+
+
+require PACKAGIX_COMPOSER_INSTALL;
+Packagix\Command::main();
