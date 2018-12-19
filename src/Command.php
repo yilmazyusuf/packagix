@@ -1,14 +1,17 @@
 <?php
 
 namespace Packagix;
+use ZipArchive;
 class Command
 {
     //./vendor/bin/packagix init
     protected $arguments = [
-        'init'
+        'init',
+        'install'
     ];
 
     protected $composerJson = null;
+    protected $argOption = [];
 
 
     public static function main()
@@ -26,6 +29,7 @@ class Command
 
     protected function checkArgs(string $arg): bool
     {
+
         return in_array($arg, $this->arguments);
     }
 
@@ -33,19 +37,39 @@ class Command
     {
 
         foreach ($_SERVER['argv'] as $argv) {
-            if ($this->checkArgs($argv) === true) {
-                $this->handleArgument($argv);
+
+            $argWithOptions = explode('=', $argv);
+            $argName = trim($argWithOptions[0]);
+
+            if (isset($argWithOptions[1])) {
+                $argOption = trim($argWithOptions[1]);
+                $this->argOption[$argName] = $argOption;
+            }
+
+
+            if ($this->checkArgs($argName) === true) {
+                $this->handleArgument($argName);
             }
         }
     }
 
     protected function handleArgument(string $argv)
     {
-
         switch ($argv) {
             case 'init':
                 $this->readComposerJson();
                 $this->cmdInit();
+                break;
+            case 'install':
+
+                if (!isset($this->argOption['install']) || $this->argOption['install'] == '') {
+                    fwrite(STDERR, 'Packate not found' . PHP_EOL);
+                    die(4);
+                }
+
+                $this->readComposerJson();
+                $this->cmdInstall();
+
                 break;
         }
     }
@@ -62,7 +86,7 @@ class Command
         if ($composerContent === false || is_null($composerContent)) {
             fwrite(
                 STDERR,
-                'unable to read composer.json' . PHP_EOL
+                'Unable to read composer.json' . PHP_EOL
             );
             die(1);
         }
@@ -72,22 +96,43 @@ class Command
 
     }
 
+
     protected function cmdInit()
     {
         if (!isset($this->composerJson['scripts'])) {
             $this->composerJson['scripts'] = [];
         }
 
-        if(!isset($this->composerJson['scripts']['packagix'])){
+        if (!isset($this->composerJson['scripts']['packagix'])) {
             $this->composerJson['scripts']['packagix'] = 'packagix';
             $this->rewriteComposerJson();
         }
     }
 
-    protected function rewriteComposerJson(){
+    protected function cmdInstall(){
+        $package = $this->argOption['install'];
 
-        $jsonify = json_encode($this->composerJson,JSON_UNESCAPED_SLASHES|JSON_PRETTY_PRINT);
-        $update = file_put_contents(COMPOSER_PATH,$jsonify);
+        $tmpPath =  __DIR__ . '/../packages/';
+
+        $source = fopen('http://trest.net/package/'.$package, 'r');
+        $target = $tmpPath.$package.'.zip';
+
+        file_put_contents($target, $source);
+
+
+
+        /*
+        $zip = new ZipArchive;
+        $zip->open($target);
+        $zip->extractTo($tmpPath);
+        */
+    }
+
+    protected function rewriteComposerJson()
+    {
+
+        $jsonify = json_encode($this->composerJson, JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT);
+        $update = file_put_contents(COMPOSER_PATH, $jsonify);
     }
 
 }
