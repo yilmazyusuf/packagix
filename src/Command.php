@@ -122,7 +122,7 @@ class Command
             $this->composerJson['repositories'] = [];
         }
 
-        $packageAlias = 'packagix/'.$package;
+        $packageAlias = $package;
         foreach ($this->composerJson['repositories'] as $repoKey => $repo) {
 
             if ($repo['package']['name'] == $packageAlias) {
@@ -135,7 +135,7 @@ class Command
             'type' => 'package',
             'package' => [
                 'type' => 'packagix',
-                'name' => 'packagix/'.$package,
+                'name' => $packageAlias,
                 'version' => $packageInfo->version,
                 'dist' => [
                     'type' => 'zip',
