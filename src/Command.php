@@ -1,10 +1,11 @@
 <?php
 
 namespace Packagix;
-use ZipArchive;
 class Command
 {
     //./vendor/bin/packagix init
+    //composer packagix install=laravel/excel
+    //composer packagix update
     protected $arguments = [
         'init',
         'install'
@@ -109,9 +110,54 @@ class Command
         }
     }
 
-    protected function cmdInstall(){
+    protected function cmdInstall()
+    {
         $package = $this->argOption['install'];
 
+        $packageJson = file_get_contents('http://trest.net/package/?package=' . $package);
+
+        $packageInfo = json_decode($packageJson);
+
+        if (!isset($this->composerJson['repositories'])) {
+            $this->composerJson['repositories'] = [];
+        }
+
+        $packageAlias = 'packagix/'.$package;
+        foreach ($this->composerJson['repositories'] as $repoKey => $repo) {
+
+            if ($repo['package']['name'] == $packageAlias) {
+                unset($this->composerJson['repositories'][$repoKey]);
+                $this->composerJson['repositories'] = array_values($this->composerJson['repositories']);
+            }
+        }
+
+        $packageRepo = [
+            'type' => 'package',
+            'package' => [
+                'type' => 'packagix',
+                'name' => 'packagix/'.$package,
+                'version' => $packageInfo->version,
+                'dist' => [
+                    'type' => 'zip',
+                    'url' => 'http://trest.net/download?package='.$package,
+                ],
+            ]
+        ];
+
+        $this->composerJson['repositories'][] = $packageRepo;
+
+
+
+        if(isset($this->composerJson['require'][$packageAlias])){
+            unset($this->composerJson['require'][$packageAlias]);
+        }
+        $this->composerJson['require'][$packageAlias] = $packageInfo->version;
+
+        $this->rewriteComposerJson();
+
+
+
+        /*
         $tmpPath =  __DIR__ . '/../packages/';
 
         $source = fopen('http://trest.net/package/'.$package, 'r');
@@ -121,7 +167,7 @@ class Command
 
 
 
-        /*
+
         $zip = new ZipArchive;
         $zip->open($target);
         $zip->extractTo($tmpPath);
