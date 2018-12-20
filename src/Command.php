@@ -4,7 +4,7 @@ namespace Packagix;
 class Command
 {
     //./vendor/bin/packagix init
-    //composer packagix install=maatwebsite/excel
+    //composer packagix install=maatwebsite/excel licence=ADCF-X34JK-LMUU-ASDY9
     //@TODO composer packagix update
     protected $arguments = [
         'init',
@@ -46,6 +46,8 @@ class Command
             if (isset($argWithOptions[1])) {
                 $argOption = trim($argWithOptions[1]);
                 $this->argOption[$argName] = $argOption;
+            }else{
+                $this->argOption[$argName] = null;
             }
 
 
@@ -53,7 +55,6 @@ class Command
         }
 
         foreach ($this->argOption as $arg => $option){
-
             if ($this->checkArgs($arg) === true) {
                 $this->handleArgument($arg);
             }
@@ -160,7 +161,7 @@ class Command
                 'version' => $packageInfo->version,
                 'dist' => [
                     'type' => 'zip',
-                    'url' => 'http://trest.net/download?package='.$package,
+                    'url' => 'http://trest.net/download?package='.$package.'&licence='.$licence,
                 ],
             ]
         ];
