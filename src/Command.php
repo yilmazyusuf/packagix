@@ -4,11 +4,12 @@ namespace Packagix;
 class Command
 {
     //./vendor/bin/packagix init
-    //composer packagix install=laravel/excel
-    //composer packagix update
+    //composer packagix install=maatwebsite/excel
+    //@TODO composer packagix update
     protected $arguments = [
         'init',
-        'install'
+        'install',
+        'licence'
     ];
 
     protected $composerJson = null;
@@ -48,8 +49,13 @@ class Command
             }
 
 
-            if ($this->checkArgs($argName) === true) {
-                $this->handleArgument($argName);
+
+        }
+
+        foreach ($this->argOption as $arg => $option){
+
+            if ($this->checkArgs($arg) === true) {
+                $this->handleArgument($arg);
             }
         }
     }
@@ -65,6 +71,11 @@ class Command
 
                 if (!isset($this->argOption['install']) || $this->argOption['install'] == '') {
                     fwrite(STDERR, 'Packate not found' . PHP_EOL);
+                    die(4);
+                }
+
+                if (!isset($this->argOption['licence']) || $this->argOption['licence'] == '') {
+                    fwrite(STDERR, 'Licence Key Required' . PHP_EOL);
                     die(4);
                 }
 
@@ -112,11 +123,21 @@ class Command
 
     protected function cmdInstall()
     {
-        $package = $this->argOption['install'];
 
-        $packageJson = file_get_contents('http://trest.net/package/?package=' . $package);
+        $package = $this->argOption['install'];
+        $licence = $this->argOption['licence'];
+
+        $packageJson = file_get_contents('http://trest.net/package/?package=' . $package.'&licence='.$licence);
+        if($packageJson === false){
+            fwrite(STDERR, 'Unable to connect packagix' . PHP_EOL);
+            die(5);
+        }
 
         $packageInfo = json_decode($packageJson);
+        if($packageInfo->result === false){
+            fwrite(STDERR, $packageInfo->message . PHP_EOL);
+            die(6);
+        }
 
         if (!isset($this->composerJson['repositories'])) {
             $this->composerJson['repositories'] = [];
@@ -151,7 +172,7 @@ class Command
         if(isset($this->composerJson['require'][$packageAlias])){
             unset($this->composerJson['require'][$packageAlias]);
         }
-        $this->composerJson['require'][$packageAlias] = $packageInfo->version;
+        $this->composerJson['require'][$packageAlias] = '*';
 
         $this->rewriteComposerJson();
 
