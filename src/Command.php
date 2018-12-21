@@ -1,206 +1,130 @@
 <?php
 
 namespace Packagix;
+
+use Packagix\Cmd\CommandInterface;
+use Packagix\Cmd\Init;
+use Packagix\Cmd\InitCommand;
+use Packagix\Cmd\InstallCommand;
+use Packagix\Cmd\LicenceCommand;
+
 class Command
 {
-    //./vendor/bin/packagix init
-    //composer packagix install=maatwebsite/excel licence=ADCF-X34JK-LMUU-ASDY9
-    //@TODO composer packagix update
-    protected $arguments = [
-        'init',
-        'install',
-        'licence'
-    ];
 
-    protected $composerJson = null;
-    protected $argOption = [];
+
+    protected $receiverCommands = [];
+
+    protected static function commands()
+    {
+        return [
+            'init' => InitCommand::class,
+            'install' => InstallCommand::class,
+            'licence' => LicenceCommand::class,
+        ];
+    }
+
+
+
+
+    protected function getCommand(string $commandClassPath): CommandInterface
+    {
+        return new $commandClassPath;
+    }
 
 
     public static function main()
     {
 
         $command = new static;
+        $commandsList = $command::commands();
+        $command->prepare();
+        $command->handle();
 
-        return $command->run();
     }
 
-    protected function run()
-    {
-        return $this->getArguments();
-    }
 
-    protected function checkArgs(string $arg): bool
-    {
 
-        return in_array($arg, $this->arguments);
-    }
 
-    protected function getArguments()
+    protected function prepare()
     {
+        $commands = self::commands();
 
         foreach ($_SERVER['argv'] as $argv) {
 
             $argWithOptions = explode('=', $argv);
             $argName = trim($argWithOptions[0]);
+            $argOption = isset($argWithOptions[1]) ? trim($argWithOptions[1]) : null;
 
-            if (isset($argWithOptions[1])) {
-                $argOption = trim($argWithOptions[1]);
-                $this->argOption[$argName] = $argOption;
-            }else{
-                $this->argOption[$argName] = null;
-            }
+            if (isset($commands[$argName])) {
 
+                $command = $commands[$argName];
+                $commandInstance = $this->getCommand($command);
 
-
-        }
-
-        foreach ($this->argOption as $arg => $option){
-            if ($this->checkArgs($arg) === true) {
-                $this->handleArgument($arg);
-            }
-        }
-    }
-
-    protected function handleArgument(string $argv)
-    {
-        switch ($argv) {
-            case 'init':
-                $this->readComposerJson();
-                $this->cmdInit();
-                break;
-            case 'install':
-
-                if (!isset($this->argOption['install']) || $this->argOption['install'] == '') {
-                    fwrite(STDERR, 'Packate not found' . PHP_EOL);
-                    die(4);
+                if ($commandInstance->isOptionRequired() === true && is_null($argOption)) {
+                    fwrite(STDERR, 'Option Required for '.$argName . PHP_EOL);
+                    die(1);
                 }
 
-                if (!isset($this->argOption['licence']) || $this->argOption['licence'] == '') {
-                    fwrite(STDERR, 'Licence Key Required' . PHP_EOL);
-                    die(4);
+                if(!is_null($argOption)){
+                    $commandInstance->setOption($argOption);
                 }
 
-                $this->readComposerJson();
-                $this->cmdInstall();
-
-                break;
-        }
-    }
-
-    protected function readComposerJson()
-    {
-
-        if (!is_null($this->composerJson)) {
-            return $this->composerJson;
-        }
-
-        $composerContent = file_get_contents(COMPOSER_PATH);
-
-        if ($composerContent === false || is_null($composerContent)) {
-            fwrite(
-                STDERR,
-                'Unable to read composer.json' . PHP_EOL
-            );
-            die(1);
-        }
-
-        $this->composerJson = json_decode($composerContent, true);
-        return $composerContent;
-
-    }
-
-
-    protected function cmdInit()
-    {
-        if (!isset($this->composerJson['scripts'])) {
-            $this->composerJson['scripts'] = [];
-        }
-
-        if (!isset($this->composerJson['scripts']['packagix'])) {
-            $this->composerJson['scripts']['packagix'] = 'packagix';
-            $this->rewriteComposerJson();
-        }
-    }
-
-    protected function cmdInstall()
-    {
-
-        $package = $this->argOption['install'];
-        $licence = $this->argOption['licence'];
-
-        $packageJson = file_get_contents('http://trest.net/package/?package=' . $package.'&licence='.$licence);
-        if($packageJson === false){
-            fwrite(STDERR, 'Unable to connect packagix' . PHP_EOL);
-            die(5);
-        }
-
-        $packageInfo = json_decode($packageJson);
-        if($packageInfo->result === false){
-            fwrite(STDERR, $packageInfo->message . PHP_EOL);
-            die(6);
-        }
-
-        if (!isset($this->composerJson['repositories'])) {
-            $this->composerJson['repositories'] = [];
-        }
-
-        $packageAlias = $package;
-        foreach ($this->composerJson['repositories'] as $repoKey => $repo) {
-
-            if ($repo['package']['name'] == $packageAlias) {
-                unset($this->composerJson['repositories'][$repoKey]);
-                $this->composerJson['repositories'] = array_values($this->composerJson['repositories']);
+                $this->attachReceiverCommand($argName,$commandInstance);
             }
         }
 
-        $packageRepo = [
-            'type' => 'package',
-            'package' => [
-                'type' => 'packagix',
-                'name' => $packageAlias,
-                'version' => $packageInfo->version,
-                'dist' => [
-                    'type' => 'zip',
-                    'url' => 'http://trest.net/download?package='.$package.'&licence='.$licence,
-                ],
-            ]
-        ];
+    }
 
-        $this->composerJson['repositories'][] = $packageRepo;
+    protected function handle(){
+
+        $commands = $this->getReceiverCommands();
 
 
+        $commandsReversed = array_flip(self::commands());
 
-        if(isset($this->composerJson['require'][$packageAlias])){
-            unset($this->composerJson['require'][$packageAlias]);
+        foreach ($commands as $command => $commandInstance){
+            if(method_exists($commandInstance,'child')){
+
+                $child = $commandInstance->child();
+                $commandKey = $commandsReversed[$child];
+
+                if(!isset($commands[$commandKey])){
+                    fwrite(STDERR, 'Argument required '.$commandKey .' for '.$command . PHP_EOL);
+                    die(1);
+                }
+                $commandInstance->setChild($commands[$commandKey]);
+
+            }
+
+            $invoker = new Invoker();
+            $invoker->setCommand($commandInstance);
+            $invoker->run();
+
+
         }
-        $this->composerJson['require'][$packageAlias] = '*';
-
-        $this->rewriteComposerJson();
 
 
-
-        /*
-        $tmpPath =  __DIR__ . '/../packages/';
-
-        $source = fopen('http://trest.net/package/'.$package, 'r');
-        $target = $tmpPath.$package.'.zip';
-
-        file_put_contents($target, $source);
-
-
-
-
-        $zip = new ZipArchive;
-        $zip->open($target);
-        $zip->extractTo($tmpPath);
-        */
     }
 
-    protected function rewriteComposerJson()
+
+
+    /**
+     * @return array
+     */
+    public function getReceiverCommands(): array
     {
-
-        $jsonify = json_encode($this->composerJson, JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT);
-        $update = file_put_contents(COMPOSER_PATH, $jsonify);
+        return $this->receiverCommands;
     }
+
+    /**
+     * @param array $receiverCommands
+     */
+    public function attachReceiverCommand(string $argName,CommandInterface $receiverCommand): Command
+    {
+        $this->receiverCommands[$argName] = $receiverCommand;
+        return $this;
+    }
+
+
 
 }
