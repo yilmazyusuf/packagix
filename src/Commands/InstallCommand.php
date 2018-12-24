@@ -1,7 +1,9 @@
 <?php
 
 namespace Packagix\Cmd;
+
 use Packagix\Composer;
+use Packagix\Repository;
 
 class InstallCommand extends Contract implements CommandInterface
 {
@@ -31,45 +33,13 @@ class InstallCommand extends Contract implements CommandInterface
         }
 
         $composerContent = Composer::getInstance();
-        $content = $composerContent->readContent();
+        $repository = new Repository();
+        $repository->setName($package)
+            ->setVersion($packageInfo->version)
+            ->setLicence($licenceKey)
+            ->setType($packageInfo->type);
 
-        if (!isset($content['repositories'])) {
-            $content['repositories'] = [];
-        }
-
-        foreach ($content['repositories'] as $repoKey => $repo) {
-
-            if ($repo['package']['name'] == $package) {
-                unset($content['repositories'][$repoKey]);
-                $content['repositories'] = array_values($content['repositories']);
-            }
-        }
-
-
-        $packageRepo = [
-            'type' => 'package',
-            'package' => [
-                'type' => 'packagix',
-                'name' => $package,
-                'version' => $packageInfo->version,
-                'dist' => [
-                    'type' => 'zip',
-                    'url' => 'http://trest.net/download?package=' . $package . '&licence=' . $licenceKey,
-                ],
-            ]
-        ];
-
-        $content['repositories'][] = $packageRepo;
-
-
-
-        if (isset($content['require'][$package])) {
-            unset($content['require'][$package]);
-        }
-        $content['require'][$package] = '*';
-
-        $composerContent->rewriteComposerJson($content);
-
+        $composerContent->addToRepositories($repository);
 
 
     }
