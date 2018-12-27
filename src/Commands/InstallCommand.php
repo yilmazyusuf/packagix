@@ -19,7 +19,7 @@ class InstallCommand extends Contract implements CommandInterface
         $licenceKey = $licence->getOption();
 
         $package = $this->getOption();
-        $packageJson = file_get_contents('http://trest.net/package/?package=' . $package . '&licence=' . $licenceKey);
+        $packageJson = file_get_contents('https://packagist.com/package/?package=' . $package . '&licence=' . $licenceKey);
 
         if ($packageJson === false) {
             fwrite(STDERR, 'Unable to connect packagix' . PHP_EOL);
@@ -49,13 +49,13 @@ class InstallCommand extends Contract implements CommandInterface
         return true;
     }
 
-    public function child()
+    public function child(): string
     {
         return LicenceCommand::class;
 
     }
 
-    public function setChild(LicenceCommand $licence)
+    public function setChild(LicenceCommand $licence) : void
     {
         $this->licence = $licence;
     }

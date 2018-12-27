@@ -51,9 +51,7 @@ call_user_func(function () {
 
         die(3);
     }
-
-
-
+    
 
 });
 

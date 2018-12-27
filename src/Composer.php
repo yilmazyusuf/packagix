@@ -47,7 +47,6 @@ final class Composer
     private function rewriteComposerJson($content)
     {
 
-        var_dump($content);
         $jsonify = json_encode($content, JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT);
         $update = file_put_contents($this->path, $jsonify);
 
@@ -108,7 +107,7 @@ final class Composer
                 'version' => $repository->getVersion(),
                 'dist' => [
                     'type' => 'zip',
-                    'url' => 'http://trest.net/download?package=' . $repository->getName() . '&licence=' . $repository->getLicence(),
+                    'url' => 'https://packagist.com/download?package=' . $repository->getName() . '&licence=' . $repository->getLicence(),
                 ],
             ]
         ];

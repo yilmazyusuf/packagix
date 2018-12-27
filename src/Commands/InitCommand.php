@@ -14,18 +14,13 @@ class InitCommand extends Contract implements CommandInterface
     public function execute()
     {
         $composerContent = Composer::getInstance();
-        $composerContent->addPackagixToScripts('packagix','packagix');
+        $composerContent->addToScripts('packagix', 'packagix');
     }
 
-    public  function isOptionRequired()
+    public function isOptionRequired()
     {
         return false;
     }
-
-
-
-
-
-
+    
 
 }

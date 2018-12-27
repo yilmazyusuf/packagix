@@ -8,6 +8,7 @@ abstract class Contract
 
     public $option = '';
     private $composer = null;
+
     /**
      * @return string
      */
@@ -24,5 +25,6 @@ abstract class Contract
         $this->option = $option;
         return $this;
     }
+    
 
 }
