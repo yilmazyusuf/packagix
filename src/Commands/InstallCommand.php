@@ -19,7 +19,7 @@ class InstallCommand extends Contract implements CommandInterface
         $licenceKey = $licence->getOption();
 
         $package = $this->getOption();
-        $packageJson = file_get_contents('https://packagist.com/package/?package=' . $package . '&licence=' . $licenceKey);
+        $packageJson = file_get_contents('https://packagix.com/package/?package=' . $package . '&licence=' . $licenceKey);
 
         if ($packageJson === false) {
             fwrite(STDERR, 'Unable to connect packagix' . PHP_EOL);
