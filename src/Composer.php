@@ -107,7 +107,7 @@ final class Composer
                 'version' => $repository->getVersion(),
                 'dist' => [
                     'type' => 'zip',
-                    'url' => 'https://packagist.com/download?package=' . $repository->getName() . '&licence=' . $repository->getLicence(),
+                    'url' => 'https://packagix.com/download?package=' . $repository->getName() . '&licence=' . $repository->getLicence(),
                 ],
             ]
         ];
