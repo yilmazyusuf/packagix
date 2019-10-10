@@ -2,8 +2,14 @@
     "name": "packagix/packagix",
     "description": "Packagix",
     "type": "library",
-
+    "license": "MIT",
     "prefer-stable": true,
+        "authors": [
+        {
+            "name": "Yusuf Yılmaz",
+            "email": "y.yilmaz@hotmail.com.tr"
+        }
+    ],
     "require": {
         "php": "^7.1",
         "symfony/process": "*"
