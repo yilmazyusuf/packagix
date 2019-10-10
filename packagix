@@ -1,0 +1,64 @@
+#!/usr/bin/env php
+<?php
+call_user_func(function () {
+    
+    $cwd = getcwd();
+    $cwd = str_replace('\\', '/', $cwd);
+    $chunks = explode('/', $cwd);
+
+    while (!empty($chunks)) {
+        $path = implode('/', $chunks);
+        if (is_file($path . '/composer.json')) {
+            define('COMPOSER_PATH', $path . '/composer.json');
+        }
+
+        array_pop($chunks);
+    }
+
+    if (!defined('COMPOSER_PATH')) {
+        fwrite(
+            STDERR,
+            'composer.json not found:' . PHP_EOL . PHP_EOL .
+            '    composer install' . PHP_EOL . PHP_EOL .
+            'You can learn about Composer on https://getcomposer.org/.' . PHP_EOL
+        );
+
+        die(1);
+    }
+
+    if(is_writable(COMPOSER_PATH) === false){
+        fwrite(STDERR,'composer.json is not writeable' . PHP_EOL);
+        die(2);
+    }
+
+    foreach (array(__DIR__ . '/../../autoload.php', __DIR__ . '/../vendor/autoload.php', __DIR__ . '/vendor/autoload.php') as $file) {
+        if (file_exists($file)) {
+            define('PACKAGIX_COMPOSER_INSTALL', $file);
+
+            break;
+        }
+    }
+    unset($file);
+
+    if (!defined('PACKAGIX_COMPOSER_INSTALL')) {
+        fwrite(
+            STDERR,
+            'You need to set up the project dependencies using Composer:' . PHP_EOL . PHP_EOL .
+            '    composer install' . PHP_EOL . PHP_EOL .
+            'You can learn  about Composer on https://getcomposer.org/.' . PHP_EOL
+        );
+
+        die(3);
+    }
+    
+
+});
+
+
+
+
+
+require PACKAGIX_COMPOSER_INSTALL;
+Packagix\Command::main();
+
+
