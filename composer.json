@@ -6,7 +6,7 @@
     "prefer-stable": true,
     "require": {
         "php": "^7.1",
-        "symfony/process": "*",
+        "symfony/process": "*"
 
     },
     "config": {
